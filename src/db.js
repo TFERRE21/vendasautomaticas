@@ -20,14 +20,31 @@ if (process.env.DATABASE_URL) {
     CREATE TABLE IF NOT EXISTS runs(id BIGSERIAL PRIMARY KEY,started_at TIMESTAMPTZ NOT NULL,finished_at TIMESTAMPTZ,status TEXT NOT NULL,trends_found INTEGER DEFAULT 0,products_found INTEGER DEFAULT 0,posts_created INTEGER DEFAULT 0,error TEXT)
   `);
   db = {
-    async all(sql,params=[]){const q=sql.replace(/\?/g,(_,i)=>'$'+(++this.n));const r=await pool.query(q,params);this.n=0;return r.rows;},
-    async run(sql,params=[]){let i=0;const q=sql.replace(/\?/g,()=>'$'+(++i));return pool.query(q,params);},
-    async close(){await pool.end();}, n:0
+    async all(sql,params=[]) {
+      let i=0;
+      const q=sql.replace(/\?/g,()=>'$'+(++i));
+      const result=await pool.query(q,params);
+      return result.rows;
+    },
+    async run(sql,params=[]) {
+      let i=0;
+      let q=sql.replace(/\?/g,()=>'$'+(++i));
+      if (/^\s*INSERT\b/i.test(q) && !/\bRETURNING\b/i.test(q)) q += ' RETURNING id';
+      const result=await pool.query(q,params);
+      return {...result,lastInsertRowid:result.rows?.[0]?.id};
+    },
+    async close(){await pool.end();}
   };
 } else {
   const file=process.env.SQLITE_PATH||'./data/vendasautomaticas.sqlite';
   fs.mkdirSync(path.dirname(file),{recursive:true});
-  const sqlite=new Database(file);sqlite.pragma('journal_mode = WAL');sqlite.exec(sqliteSchema);
-  db={async all(sql,params=[]){return sqlite.prepare(sql).all(...params);},async run(sql,params=[]){return sqlite.prepare(sql).run(...params);},async close(){sqlite.close();}};
+  const sqlite=new Database(file);
+  sqlite.pragma('journal_mode = WAL');
+  sqlite.exec(sqliteSchema);
+  db={
+    async all(sql,params=[]){return sqlite.prepare(sql).all(...params);},
+    async run(sql,params=[]){return sqlite.prepare(sql).run(...params);},
+    async close(){sqlite.close();}
+  };
 }
 export {db};
