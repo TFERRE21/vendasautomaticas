@@ -55,19 +55,19 @@ app.get('/',auth,(_req,res)=>res.type('html').send(`<!doctype html>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#0b1220;color:#e8edf5;font:14px system-ui,-apple-system,sans-serif}.wrap{max-width:1180px;margin:auto;padding:30px 22px}.top{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}.muted{color:#9aa9bf}.eyebrow{letter-spacing:.12em;font-size:11px;color:#91a8c5}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:14px;margin:25px 0}.card{background:#142035;border:1px solid #293b55;border-radius:14px;padding:19px}.num{font-size:30px;font-weight:750;margin-top:6px}.btn{background:#39c28a;color:#062719;border:0;border-radius:9px;padding:12px 16px;font-weight:750;cursor:pointer}.btn:disabled{opacity:.6;cursor:wait}.section{margin-top:17px}.section h2{margin:0 0 8px;font-size:18px}.hint{font-size:12px;color:#9aa9bf;line-height:1.5}.table-wrap{overflow-x:auto;margin-top:14px}table{width:100%;border-collapse:collapse;min-width:760px}th,td{text-align:left;padding:12px 10px;border-bottom:1px solid #293b55;vertical-align:top}th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#9aa9bf}td{font-size:13px}.score{font-weight:800}.high{color:#5fe0a4}.medium{color:#ffd27a}.low{color:#9aa9bf}.pill{display:inline-block;padding:4px 8px;border-radius:30px;background:#20334d;font-size:11px}.money{font-weight:750;color:#74e0ad}.reason{max-width:260px;color:#aebbd0;font-size:12px}.runbox{white-space:pre-wrap;overflow:auto;color:#aebbd0;font-size:12px}.empty{padding:18px 0;color:#9aa9bf}.footer{margin:16px 0;color:#8fa0b8;font-size:12px;line-height:1.6}@media(max-width:600px){.wrap{padding:20px 13px}.num{font-size:25px}}
 </style></head><body><main class="wrap">
-<div class="top"><div><div class="eyebrow">CENTRAL DE AFILIADOS</div><h1 style="margin:7px 0">Vendas Automáticas</h1><p class="muted">Descubra tendências, classifique oportunidades e estime comissões.</p></div><button class="btn" id="run">Executar pesquisa agora</button></div>
+<div class="top"><div><div class="eyebrow">CENTRAL DE AFILIADOS</div><h1 style="margin:7px 0">Vendas Automáticas</h1><p class="muted">Filtre assuntos sem intenção de compra e priorize buscas por produtos.</p></div><button class="btn" id="run">Executar pesquisa agora</button></div>
 <div class="grid">
 <div class="card"><div class="muted">Tendências nas últimas 24h</div><div class="num" id="t">—</div></div>
 <div class="card"><div class="muted">Oportunidades comerciais</div><div class="num" id="o">—</div></div>
 <div class="card"><div class="muted">Produtos afiliados confirmados</div><div class="num" id="p">—</div></div>
 <div class="card"><div class="muted">Publicações</div><div class="num" id="n">—</div></div>
 </div>
-<div class="card section"><h2>Ranking de oportunidades</h2><p class="hint">Classificação automática por aderência a produtos e intenção comercial. A comissão é uma simulação por venda, não uma oferta confirmada nem garantia de ganho.</p>
-<div class="table-wrap"><table><thead><tr><th>Tendência</th><th>Categoria sugerida</th><th>Chance comercial</th><th>Comissão estimada por venda</th><th>Por que entrou?</th></tr></thead><tbody id="opps"><tr><td colspan="5">Carregando oportunidades...</td></tr></tbody></table></div>
+<div class="card section"><h2>Ranking de oportunidades</h2><p class="hint">A pontuação indica aderência do termo a uma categoria de produto; não é probabilidade de venda. Comissão só aparece quando houver oferta, link e taxa confirmados pelo programa.</p>
+<div class="table-wrap"><table><thead><tr><th>Tendência</th><th>Categoria sugerida</th><th>Aderência ao varejo</th><th>Comissão confirmada</th><th>Por que entrou?</th></tr></thead><tbody id="opps"><tr><td colspan="5">Carregando oportunidades...</td></tr></tbody></table></div>
 </div>
 <div class="card section"><h2>Última execução</h2><pre id="last" class="runbox">Carregando...</pre></div>
 <div class="card section"><h2>Publicações recentes</h2><div id="recent" class="empty">Carregando...</div></div>
-<p class="footer">Estimativas ilustrativas calculadas com faixas hipotéticas de preço e comissão. Valores reais dependem do produto, da loja, do programa de afiliados, da aprovação do link e da conversão. Nenhuma venda ou comissão é garantida. Publicação automática permanece desativada até conectar e validar as contas.</p>
+<p class="footer">O sistema não inventa preços, comissões ou ganhos. Valores só serão exibidos após consulta a um produto e a uma taxa de comissão reais do programa de afiliados. Publicação automática permanece desativada até conectar e validar as contas.</p>
 </main>
 <script>
 const api=async(p,o)=>{const r=await fetch('/api/'+p,o);if(!r.ok)throw Error(await r.text());return r.json()};
@@ -83,7 +83,7 @@ async function load(){
  const tbody=document.getElementById('opps');
  tbody.innerHTML=data.opportunities.length?data.opportunities.map(x=>{
    const cls=x.score>=80?'high':x.score>=50?'medium':'low';
-   const estimate=x.score>=50?'<span class="money">'+esc(x.estimate)+'</span>':'<span class="muted">Não estimável</span>';
+   const estimate='<span class="muted">Aguardando oferta e taxa reais</span>';
    return '<tr><td><b>'+esc(x.term)+'</b><div class="hint">'+esc(new Date(x.captured_at).toLocaleString('pt-BR'))+'</div></td><td>'+esc(x.category)+'</td><td><span class="score '+cls+'">'+x.score+'/100</span><div class="hint">'+esc(x.rating)+'</div></td><td>'+estimate+'</td><td class="reason">'+esc(x.reason)+'</td></tr>';
  }).join(''):'<tr><td colspan="5">Nenhuma tendência encontrada nas últimas 24 horas.</td></tr>';
  const posts=await api('posts');
