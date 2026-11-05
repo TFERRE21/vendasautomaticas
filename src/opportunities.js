@@ -1,38 +1,55 @@
 const RULES = [
-  { terms:['iphone'], category:'iPhone e acessórios', price:[2500,8000], rate:[0.02,0.05], score:92, reason:'Busca explícita por produto de alto valor.' },
-  { terms:['smartphone','celular','samsung galaxy','xiaomi','motorola'], category:'Celulares e acessórios', price:[700,5000], rate:[0.02,0.06], score:88, reason:'Produto de consumo com intenção comercial clara.' },
-  { terms:['notebook','laptop','computador','pc gamer'], category:'Informática', price:[1800,7500], rate:[0.02,0.06], score:86, reason:'Produto pesquisável e comparável por preço.' },
-  { terms:['air fryer','geladeira','televis','smart tv','lavadora','microondas'], category:'Eletrodomésticos', price:[250,4500], rate:[0.03,0.08], score:84, reason:'Categoria com ofertas e comparação de preços.' },
-  { terms:['fone','headphone','monitor','tablet','playstation','xbox','console'], category:'Eletrônicos e games', price:[150,3500], rate:[0.03,0.08], score:82, reason:'Produtos físicos com procura em lojas online.' },
-  { terms:['ferramenta','furadeira','parafusadeira'], category:'Ferramentas', price:[100,1200], rate:[0.03,0.08], score:78, reason:'Produto físico com potencial de compra direta.' },
-  { terms:['ccxp'], category:'Games, colecionáveis e acessórios', price:[80,600], rate:[0.04,0.10], score:58, reason:'Evento pode gerar procura por produtos relacionados; tendência não prova intenção de compra.' }
+  { terms:['iphone'], category:'iPhone e acessórios', score:94, reason:'Nome de produto específico; permite buscar modelos, preço e ofertas.' },
+  { terms:['air fryer','airfryer'], category:'Eletrodomésticos', score:91, reason:'Categoria de produto de varejo com comparação direta de modelos e preços.' },
+  { terms:['notebook','laptop','pc gamer'], category:'Informática', score:90, reason:'Produto específico e comparável por configuração e preço.' },
+  { terms:['smart tv','televisão','televis','tv 4k'], category:'TVs e eletrônicos', score:89, reason:'Produto físico com modelos e faixas de preço comparáveis.' },
+  { terms:['smartphone','celular','samsung galaxy','xiaomi','motorola'], category:'Celulares e acessórios', score:88, reason:'Produto de consumo com modelos pesquisáveis.' },
+  { terms:['playstation','ps5','xbox','nintendo switch','console'], category:'Games e consoles', score:87, reason:'Produto identificável com catálogo de lojas.' },
+  { terms:['geladeira','lavadora','máquina de lavar','microondas','micro-ondas'], category:'Eletrodomésticos', score:86, reason:'Produto físico de maior valor e comparação de modelos.' },
+  { terms:['fone bluetooth','headphone','smartwatch','tablet','monitor'], category:'Eletrônicos', score:83, reason:'Produto identificável e disponível em marketplaces.' },
+  { terms:['furadeira','parafusadeira','serra circular'], category:'Ferramentas', score:82, reason:'Produto de varejo com especificações e preços comparáveis.' },
+  { terms:['ar condicionado','ar-condicionado','ventilador','aspirador de pó'], category:'Casa e eletrodomésticos', score:82, reason:'Produto físico com procura comercial possível.' },
+  { terms:['perfume','fralda','cafeteira','liquidificador','escova secadora'], category:'Casa, beleza e cuidados', score:80, reason:'Categoria de consumo com produtos pesquisáveis.' },
+  { terms:['tênis','tenis','mochila','cadeira gamer','colchão','colchao','ração','racao'], category:'Moda, casa e pets', score:77, reason:'Produto de varejo; precisa validar oferta, preço e procura.' }
 ];
 
-const LOW_INTENT = ['brighton','graciele lacerda','strauss zelnick','sunderland','matt damon','new york times','flavio bolsonaro','bayer leverkusen','liga conferência','ciclone','eleição','acidente','morte','resultado','partida','previsão do tempo'];
+const NON_PRODUCT = [
+  'brighton','graciele lacerda','strauss zelnick','sunderland','matt damon',
+  'new york times','flavio bolsonaro','bayer leverkusen','liga conferência',
+  'ciclone','eleição','acidente','morte','resultado','partida','previsão do tempo',
+  'ccxp','campeonato','jogo de hoje','notícia','noticia'
+];
 
-const brl = value => Number(value.toFixed(2));
+const normalize = value => String(value || '').toLocaleLowerCase('pt-BR')
+  .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
 
 export function analyzeTrend(term) {
-  const normalized = String(term || '').toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  const rule = RULES.find(item => item.terms.some(keyword => normalized.includes(keyword.normalize('NFD').replace(/[\u0300-\u036f]/g,''))));
-  if (!rule || LOW_INTENT.some(keyword => normalized.includes(keyword.normalize('NFD').replace(/[\u0300-\u036f]/g,'')))) {
+  const text = normalize(term);
+  const excluded = NON_PRODUCT.some(word => text.includes(normalize(word)));
+  const rule = RULES.find(item => item.terms.some(keyword => text.includes(normalize(keyword))));
+
+  if (excluded || !rule) {
     return {
-      term, category:'Sem categoria de produto confirmada', score:5, rating:'Muito baixa',
-      priceMin:0, priceMax:0, commissionMin:0, commissionMax:0,
-      estimate:'Sem estimativa: não há produto identificável nesta tendência.',
-      reason:'Assunto informativo, celebridade, esporte ou termo sem intenção de compra clara.'
+      term,
+      category:'Não é uma busca de produto',
+      score:0,
+      rating:'Descartada',
+      estimate:null,
+      commissionMin:null,
+      commissionMax:null,
+      reason:'Tendência genérica, notícia, pessoa, esporte ou evento. Não será tratada como oportunidade de afiliado.'
     };
   }
-  const [pMin,pMax] = rule.price;
-  const [rMin,rMax] = rule.rate;
-  const commissionMin = brl(pMin*rMin);
-  const commissionMax = brl(pMax*rMax);
-  const rating = rule.score >= 85 ? 'Alta' : rule.score >= 65 ? 'Média' : 'Baixa';
+
   return {
-    term, category:rule.category, score:rule.score, rating,
-    priceMin:pMin, priceMax:pMax, commissionMin, commissionMax,
-    estimate:'R$ '+commissionMin.toFixed(2).replace('.',',')+' a R$ '+commissionMax.toFixed(2).replace('.',',')+' por venda',
-    reason:rule.reason,
-    assumptions:{ticketMin:pMin,ticketMax:pMax,commissionRateMin:rMin,commissionRateMax:rMax}
+    term,
+    category:rule.category,
+    score:rule.score,
+    rating:rule.score >= 85 ? 'Aderência alta' : 'Aderência média',
+    estimate:null,
+    commissionMin:null,
+    commissionMax:null,
+    reason:rule.reason + ' A pontuação mede aderência ao varejo, não probabilidade de venda.',
+    commissionStatus:'Aguardando produto, link e taxa reais do programa de afiliados.'
   };
 }
