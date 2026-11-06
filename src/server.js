@@ -70,17 +70,16 @@ app.get('/',auth,(_req,res)=>res.type('html').send(`<!doctype html>
 <div class="card"><div class="muted">Produtos afiliados confirmados</div><div class="num" id="p">—</div></div>
 <div class="card"><div class="muted">Publicações</div><div class="num" id="n">—</div></div>
 </div>
-<div class="card section"><h2>Monitoramento das pesquisas</h2>
-<p class="hint">Quantidade de execuções, termos coletados e origem real dos dados utilizados pelo robô.</p>
+<div class="card section"><h2>Ranking de oportunidades e pesquisas de tendências</h2>
+<p class="hint">Acompanhe quantas pesquisas foram executadas, quantos termos foram recebidos e de onde os dados estão vindo.</p>
 <div class="grid" style="margin:14px 0">
- <div class="card"><div class="muted">Pesquisas executadas</div><div class="num" id="researchRuns">—</div></div>
- <div class="card"><div class="muted">Tendências coletadas</div><div class="num" id="collectedTerms">—</div></div>
+ <div class="card"><div class="muted">Consultas realizadas</div><div class="num" id="researchRuns">—</div></div>
+ <div class="card"><div class="muted">Termos coletados no total</div><div class="num" id="collectedTerms">—</div></div>
  <div class="card"><div class="muted">Execuções com erro</div><div class="num" id="failedRuns">—</div></div>
 </div>
-<div class="hint" id="geoInfo">Localização da fonte: carregando...</div>
-<div class="table-wrap"><table style="min-width:520px"><thead><tr><th>Origem da pesquisa</th><th>Registros coletados</th><th>Última coleta</th></tr></thead><tbody id="sources"><tr><td colspan="3">Carregando fontes...</td></tr></tbody></table></div>
-</div>
-<div class="card section"><h2>Ranking de oportunidades</h2><p class="hint">A pontuação indica aderência do termo a uma categoria de produto; não é probabilidade de venda. Comissão só aparece quando houver oferta, link e taxa confirmados pelo programa.</p>
+<div class="hint" id="geoInfo">País e fonte: carregando...</div>
+<div class="table-wrap"><table style="min-width:520px"><thead><tr><th>De onde vêm as pesquisas</th><th>Termos registrados</th><th>Última coleta</th></tr></thead><tbody id="sources"><tr><td colspan="3">Carregando fontes...</td></tr></tbody></table></div>
+<p class="hint" style="margin-top:18px">A pontuação indica aderência do termo a uma categoria de produto; não é probabilidade de venda. Comissão só aparece quando houver oferta, link e taxa confirmados pelo programa.</p>
 <div class="table-wrap"><table><thead><tr><th>Tendência</th><th>Categoria sugerida</th><th>Aderência ao varejo</th><th>Comissão confirmada</th><th>Por que entrou?</th></tr></thead><tbody id="opps"><tr><td colspan="5">Carregando oportunidades...</td></tr></tbody></table></div>
 </div>
 <div class="card section"><h2>Última execução</h2><pre id="last" class="runbox">Carregando...</pre></div>
