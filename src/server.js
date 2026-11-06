@@ -31,6 +31,14 @@ app.get('/api/summary',async(_req,res,next)=>{try{
   res.json({trends:Number(a.total),products:Number(b.total),posts:Number(c.total),lastRun:r||null,mode:process.env.AUTO_PUBLISH==='true'?'auto':'draft'});
 }catch(e){next(e)}});
 
+app.get('/api/research-stats',async(_req,res,next)=>{try{
+  const [runs]=await db.all("SELECT COUNT(*) AS total, COALESCE(SUM(trends_found),0) AS collected, SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed FROM runs");
+  const sources=await db.all('SELECT source,COUNT(*) AS records,MAX(captured_at) AS last_seen FROM trends GROUP BY source ORDER BY records DESC');
+  const configuredUrl=process.env.GOOGLE_TRENDS_RSS_URL||'https://trends.google.com/trending/rss?geo=BR';
+  const geo=(configuredUrl.match(/[?&]geo=([A-Z]{2})/i)||[])[1]?.toUpperCase()||'não identificado';
+  res.json({searchRuns:Number(runs.total||0),collectedTerms:Number(runs.collected||0),failedRuns:Number(runs.failed||0),geo,sources});
+}catch(e){next(e)}});
+ 
 app.get('/api/opportunities',async(_req,res,next)=>{try{
   const rows=await db.all('SELECT term,source,score,captured_at FROM trends ORDER BY id DESC LIMIT 300');
   const cutoff=Date.now()-24*60*60*1000;
@@ -62,6 +70,16 @@ app.get('/',auth,(_req,res)=>res.type('html').send(`<!doctype html>
 <div class="card"><div class="muted">Produtos afiliados confirmados</div><div class="num" id="p">—</div></div>
 <div class="card"><div class="muted">Publicações</div><div class="num" id="n">—</div></div>
 </div>
+<div class="card section"><h2>Monitoramento das pesquisas</h2>
+<p class="hint">Quantidade de execuções, termos coletados e origem real dos dados utilizados pelo robô.</p>
+<div class="grid" style="margin:14px 0">
+ <div class="card"><div class="muted">Pesquisas executadas</div><div class="num" id="researchRuns">—</div></div>
+ <div class="card"><div class="muted">Tendências coletadas</div><div class="num" id="collectedTerms">—</div></div>
+ <div class="card"><div class="muted">Execuções com erro</div><div class="num" id="failedRuns">—</div></div>
+</div>
+<div class="hint" id="geoInfo">Localização da fonte: carregando...</div>
+<div class="table-wrap"><table style="min-width:520px"><thead><tr><th>Origem da pesquisa</th><th>Registros coletados</th><th>Última coleta</th></tr></thead><tbody id="sources"><tr><td colspan="3">Carregando fontes...</td></tr></tbody></table></div>
+</div>
 <div class="card section"><h2>Ranking de oportunidades</h2><p class="hint">A pontuação indica aderência do termo a uma categoria de produto; não é probabilidade de venda. Comissão só aparece quando houver oferta, link e taxa confirmados pelo programa.</p>
 <div class="table-wrap"><table><thead><tr><th>Tendência</th><th>Categoria sugerida</th><th>Aderência ao varejo</th><th>Comissão confirmada</th><th>Por que entrou?</th></tr></thead><tbody id="opps"><tr><td colspan="5">Carregando oportunidades...</td></tr></tbody></table></div>
 </div>
@@ -74,7 +92,13 @@ const api=async(p,o)=>{const r=await fetch('/api/'+p,o);if(!r.ok)throw Error(awa
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 async function load(){
- const s=await api('summary');const data=await api('opportunities');
+ const s=await api('summary');const data=await api('opportunities');const research=await api('research-stats');
+ document.getElementById('researchRuns').textContent=research.searchRuns;
+ document.getElementById('collectedTerms').textContent=research.collectedTerms;
+ document.getElementById('failedRuns').textContent=research.failedRuns;
+ const geoNames={BR:'Brasil',US:'Estados Unidos',GB:'Reino Unido',CA:'Canadá',AU:'Austrália'};
+ document.getElementById('geoInfo').textContent='Localização configurada na fonte Google Trends: '+(geoNames[research.geo]||research.geo)+' ('+research.geo+').';
+ document.getElementById('sources').innerHTML=research.sources.length?research.sources.map(x=>'<tr><td><b>'+esc(x.source)+'</b></td><td>'+Number(x.records).toLocaleString('pt-BR')+'</td><td>'+esc(x.last_seen?new Date(x.last_seen).toLocaleString('pt-BR'):'—')+'</td></tr>').join(''):'<tr><td colspan="3">Nenhuma fonte registrada ainda.</td></tr>';
  document.getElementById('t').textContent=data.total;
  document.getElementById('o').textContent=data.qualified;
  document.getElementById('p').textContent=s.products;
